@@ -12,10 +12,13 @@ dependencies = [
     "wandb>=0.15.0",
     "tqdm>=4.65.0",
     "numpy>=1.24.0",
+    "beir>=2.0.0",
     "vllm>=0.2.0",
 ]
 
 [project.scripts]
+langsae-eval-base = "LangSAE.evaluation.base_eval:cli"
+langsae-eval-sae = "LangSAE.evaluation.sae_eval:cli"
 langsae = "LangSAE.main:cli"
 langsae-analyze = "LangSAE.analyze_main:cli"
 
