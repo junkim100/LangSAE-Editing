@@ -35,6 +35,7 @@ The LangSAE Editing pipeline consists of three main stages:
 - **Activation extraction** (fast path uses vLLM): `LangSAE/data.py`
 - **Mask generation (analysis)**: `LangSAE/analyze_main.py`, `LangSAE/analyze.py`
 - **Editing / inference**: `LangSAE/inference_main.py`, `LangSAE/inference.py`
+- **Retrieval evaluation**: `LangSAE/evaluation/base_eval.py`, `LangSAE/evaluation/sae_eval.py`
 
 Note: datasets, cached activations, checkpoints, W&B logs, and analysis outputs are excluded from version control (see `.gitignore`).
 
@@ -50,7 +51,8 @@ LangSAE-Editing/
 │   ├── analyze_main.py       # Mask generation CLI (Fire)
 │   ├── analyze.py            # Language feature analysis
 │   ├── inference_main.py     # Editing / inference CLI (Fire)
-│   └── inference.py          # Editing utilities
+│   ├── inference.py          # Editing utilities
+│   └── evaluation/           # BEIR-style retrieval evaluation
 ├── data/
 │   └── download_data.py      # Optional dataset preparation script
 ├── run_main.py               # Wrapper to force multiprocessing spawn (vLLM safety)
@@ -88,6 +90,29 @@ uv run -m LangSAE.main \
   --num_gpus=8 \
   --gpu_memory_utilization=0.9
 ```
+
+
+### Evaluate retrieval quality
+
+Evaluation expects BEIR-style dataset directories containing `queries.jsonl`, `corpus.jsonl`, and `qrels.jsonl`.
+Use the base evaluator for unedited embeddings and the SAE evaluator for language-feature-suppressed embeddings.
+
+```bash
+python -m LangSAE.evaluation.base_eval \
+  --model="intfloat/multilingual-e5-large" \
+  --data_dirs='["data/Belebele/Belebele_test_en_to_all"]' \
+  --results_root="results_base"
+
+python -m LangSAE.evaluation.sae_eval \
+  --model="intfloat/multilingual-e5-large" \
+  --sae_path="checkpoints/exp128_k4096_lr5e-04/final_model.pt" \
+  --mask_path="analysis/language_features_combined_mask.pt" \
+  --data_dirs='["data/Belebele/Belebele_test_en_to_all"]' \
+  --results_root="results_sae_eval" \
+  --use_reconstruction=True
+```
+
+The SAE evaluator writes `*_reconstructed_results.json` by default. This is the safer default for retrieval because edited sparse features are decoded back into the base embedding dimensionality before cosine similarity search.
 
 ### (Optional) Multi-GPU training (DDP)
 
